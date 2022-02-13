@@ -1,0 +1,48 @@
+*CFOPEN,strcat(chrval(0),'Tran_Analysis'),txt,' '
+
+f=10
+A=10
+N=5
+HG=2*N/f
+!Tstop=2*N/f
+Tstop=3
+TIM=N/f/100
+
+/SOLU 
+Node_Fr=7310
+ANTYPE,4
+TRNOPT,FULL,,DAMP 
+LUMPM,0 
+OUTRES,ALL,ALL
+
+DELTIM,TIM                             ! Specifies the time step sizes
+TINTP,,0.25,0.5,0.5
+KBC,1				        ! Ramped load step
+
+*Do,t,2*TIM,Tstop,TIM
+Time,t
+
+!*IF,t,LT,N/f,THEN
+   ! vts=A*(1-cos(2*3.14*f*t/N))*sin(2*3.14*f*t)
+    vts=-A*sin(2*3.14*155*t)
+    F,Node_Fr,FY,vts
+    !D,ANTOP(4),VOLT,vts
+  ! *ELSE
+
+! *ENDIF
+
+
+
+
+solve
+
+*GET,disp,NODE,Node_Fr,U,Z
+	*VWRITE,disp,t,vts
+
+%0.0f,%0.0f,%0.0f
+
+*ENDDO
+
+*cfclos
+
+Finish

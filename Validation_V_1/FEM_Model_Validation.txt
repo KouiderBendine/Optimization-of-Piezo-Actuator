@@ -1,0 +1,227 @@
+FINISH
+/CLEAR
+
+/title, Controlled smart composite plate - Bendine K.
+/nopr								! Supresses extended interpreted data input
+/com, 								! Places comments in the output
+/CONFIG,NRES,3000 
+/CWD,'D:\Vibration_control_Paper\Ansys_Code\GA_Algo_Patc' 
+
+/PREP7
+SHPP,SILENT,ON 						        !Shape checking in silent mode
+SHPP,MODIFY,1,40
+
+
+ebig=12e-3		  ! Global element size
+frce=-2			  ! Force
+
+!Control
+ContOn=1		  ! Controller ON=1, OFF=0;
+uH=220			  ! Controller saturation
+uL=-uH
+
+*Set,Ex_Al,210E9          ! Define Youngs Modulus
+*Set,Dens_Al,7810         ! Define density [kg/mm3]
+*Set,Pois_Al,0.3          ! Define poisson
+
+!Damping
+DMPRAT,0.019
+
+!
+!-----------------------------------------------------
+!   - Plate Geometry (All PZTs QP16n)
+
+*Set,Lb,500e-3
+*Set,Wb,500e-3
+*Set,Hb,1.9e-3
+
+! 
+!-----------------------------------------------------
+!   - PZT Geometry (All PZTs QP16n)
+
+*Set,L,50e-3                         ! Length
+*Set,H,0.5e-3                        ! Thickness
+*Set,W,50e-3                         ! width
+
+!-----------------------------------------------------
+!Timing
+Tstep=0.01
+Tstop=5
+Tres =0.01
+*use,Iter_param.inp
+! Define problem parameters - PZT Placement
+!-----------------------------------------------------
+!   - Top PZT 1 
+!-----------------------------------------------------
+!x1=0
+!x2=0
+!   - Top PZT 2 
+!-----------------------------------------------------
+!x5=0
+!x6=60e-3
+!   - Top PZT 3 
+!-----------------------------------------------------
+!x3=0
+!x4=450e-3
+!   - Top PZT 4 
+!-----------------------------------------------------
+!x7=150e-3
+!x8=50e-3
+
+*DIM,ANTOP,ARRAY,4
+!----------------------
+
+*DIM,Xcoord,ARRAY,4 
+  *SET,Xcoord(1) , x1
+  *SET,Xcoord(2) , x3
+  *SET,Xcoord(3) , x5  
+  *SET,Xcoord(4) , x7
+
+*DIM,Ycoord,ARRAY,4 
+  *SET,Ycoord(1) , x2
+  *SET,Ycoord(2) , x4
+  *SET,Ycoord(3) , x6   
+  *SET,Ycoord(4) , x8
+
+! Create model 
+!----------------------
+
+BLOCK,0,Lb,0,Wb,0,Hb           ! Create the plate
+
+! Divinding the base aluminum plate for better mesh distribution
+!----------------------
+
+WPCSYS,,0
+! Top piezos
+*DO,i,1,4
+     BLOCK,Xcoord(i),L+Xcoord(i),Ycoord(i),W+Ycoord(i),Hb ,Hb +H          ! Create the active piezo actuators
+*ENDDO
+
+WPROTA,,,90
+
+*DO,j,1,4
+  WPOFFS,,,Xcoord(j)
+  VSBW,ALL
+  WPOFFS,,,L
+  VSBW,ALL
+  WPCSYS,,0
+  WPROTA,,,90
+*ENDDO
+
+WPCSYS,,0
+WPROTA,,-90
+
+*DO,j,1,4
+  WPOFFS,,,Ycoord(j)
+  VSBW,ALL
+  WPOFFS,,,W
+  VSBW,ALL
+  WPCSYS,,0
+  WPROTA,,-90
+*ENDDO
+
+WPCSYS,,0
+
+
+! Defining elements and materials:
+
+! Plate-----------------------------------------------
+
+ET,1,SOLID45
+MP,Ex,1,Ex_Al              
+MP,Prxy,1,Pois_Al           
+MP,Dens,1,Dens_Al
+
+! PZT-------------------------------------------------
+ET,2,SOLID5,3                   ! 3-D piezoelectric element
+MP,DENS,2,7800
+MP,PERX,2,1.45e-8               ! PIEZOELECTRIC PERMITTIVITY
+MP,PERY,2,1.45e-8
+MP,PERZ,2,1.55e-8               ! PERMITTIVITY (Z DIRECTION)...F/m
+TB,PIEZ,2                       ! DEFINE PIEZELECTRIC COUPLING TABLE 
+
+TBDATA,3,-7.15         ! e31 PIEZOELECTRIC CONSTANT
+TBDATA,6,-7.15         ! e32 PIEZOELECTRIC CONSTANT
+TBDATA,9,13.7          ! e33 PIEZOELECTRIC CONSTANT
+TBDATA,14,11.9         ! e15 PIEZOELECTRIC CONSTANT
+TBDATA,16,11.9         ! e16 PIEZOELECTRIC CONSTANT
+
+TB,ANEL,2                           ! DEFINE STRUCTURAL TABLE/ UPPER MATRIX
+TRIANGLE
+TBDATA,1,1.23e11,7.67e10,7.025e10   !C11, C12, C13 FIRST ROW
+TBDATA,7,1.23e11,7.025e10           !C11=C22, C13, SECOND ROW
+TBDATA,12,9.711e10                  !C33 THIRD ROW
+TBDATA,16,2.26e10                   !C44 FOURTH ROW
+TBDATA,19,2.226e10                  !C55 FIFTH ROW
+TBDATA,21,2.315e10                  !C66 SIXTH ROW
+
+
+! Assigning mesh size and materials, mesh process initiation Global
+!----------------------
+
+ESIZE,ebig
+VSEL,S,LOC,Z,0,Hb       ! Selecting plate
+VATT,1,1,1,0            ! Assigning plate material properties
+VSEL,S,LOC,Z,O,-H       !Selecting piezos
+VSEL,A,LOC,Z,Hb,Hb+H  
+VATT,2,1,2,0            !Assigning piezo material props
+ALLSEL
+VPLOT
+MSHAPE,0,3D
+MSHKEY,1
+VMESH,ALL
+
+
+!Go and merge some nodes (eg. use glue layers of materials together)
+!----------------------
+nsel,all
+nummrg,node,1e-5
+
+!Clamp left end of plate
+!----------------------
+nsel,s,loc,x,0                  ! Clamp left end 
+d,all,ux,0,,,,uy,uz		! Defines DOF constraints, clamp the end
+nsel,all
+
+*DO,j,1,4
+   asel,s,loc,z,Hb+H
+   asel,r,loc,x,Xcoord(j),Xcoord(j)+L
+   asel,r,loc,y,Ycoord(j),Ycoord(j)+W
+   nsla,s,1
+*get,ANTOP(j),node,0,num,min
+  cp,j,volt,all
+  d,ANTOP(j),VOLT,0,0
+allsel
+*ENDDO
+
+!Define lower electrodes on piezos (bonded side)
+!----------------------
+*DO,j,1,4
+  asel,s,loc,z,Hb
+  asel,r,loc,x,Xcoord(j),Xcoord(j)+L
+  asel,r,loc,y,Ycoord(j),Ycoord(j)+W
+  nsla,s,1
+  d,all,volt,0,0                  ! Ground bottom electrode,
+  nsel,all
+allsel
+*ENDDO
+
+nsel,all
+NSEL,S,LOC,Z,0,Hb
+*GET,MIN_Node,NODE,0,NUM,MIN                ! Get The minimum node number
+*GET,MAX_Node,NODE,0,NUM,MAX                ! Get The maximum node number
+
+allsel,all
+
+Node_Fr=Node(Lb,Wb/2,Hb)
+
+!Define gravitational field
+!----------------------
+acel,0,-9.81,0
+fini
+
+! Macro defining the state space paramtres
+!----------------------
+*use,State_Space.mac
+
+*use,B_Mechanical_Forced.mac

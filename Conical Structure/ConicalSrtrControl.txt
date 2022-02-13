@@ -1,0 +1,327 @@
+FINISH
+/CLEAR
+/CWD,'D:\Vibration_control_Paper\Ansys_Code\Code_for_Paper\Conical_Struc'
+/PREP7
+
+!DIMENSIONS
+!**********************************************************
+*use,Iter_param.inp
+
+RaiSeg1    = YC1
+RaiSeg2    = YC2
+RaiSeg3    = YC3
+RaiSeg4    = YC4
+
+*AFUN, DEG
+ALfaN  = 15.0
+Alfa=TAN(ALfaN)
+Length          = 400     ! Length
+Raidus1         = 100     ! Small Raidus
+Raidus2         = Alfa*Length + Raidus1  
+Thickness       = 1       ! Thickness
+
+ELsize          = 20      ! Element Size
+
+
+Patch_width     = 50      ! Width Piezo    
+Patch_Thickness = 0.5     ! Thickness 
+Nseg            = 18      ! Number of segments
+hseg            = 8       ! Number of segments
+
+
+YCoor1 = RaiSeg1*(360/Nseg)
+YCoor2 = RaiSeg2*(360/Nseg)
+YCoor3 = RaiSeg3*(360/Nseg)
+YCoor4 = RaiSeg4*(360/Nseg)
+
+ZCoor1 = ZC1
+ZCoor2 = ZC2
+ZCoor3 = ZC3
+ZCoor4 = ZC4
+
+!#****************************************************
+*DIM,LengthPatch1,ARRAY,4 
+ j=0    
+*Do,i,ZCoor1*Patch_width,(ZCoor1+1)*Patch_width,Patch_width
+  j= j +1
+  LengthPatch1(j)  = Alfa*i+(Raidus1+Thickness)
+*Enddo
+
+*DIM,LengthPatch2,ARRAY,4 
+ j=0    
+*Do,i,ZCoor2*Patch_width,(ZCoor2+1)*Patch_width,Patch_width
+  j= j +1
+  LengthPatch2(j)  = Alfa*i+(Raidus1+Thickness)
+*Enddo
+
+*DIM,LengthPatch3,ARRAY,4 
+ j=0    
+*Do,i,ZCoor3*Patch_width,(ZCoor3+1)*Patch_width,Patch_width
+  j= j +1
+  LengthPatch3(j)  = Alfa*i+(Raidus1+Thickness)
+*Enddo
+
+*DIM,LengthPatch4,ARRAY,4 
+ j=0    
+*Do,i,ZCoor4*Patch_width,(ZCoor4+1)*Patch_width,Patch_width
+  j= j +1
+  LengthPatch4(j)  = Alfa*i+(Raidus1+Thickness)
+*Enddo
+!#****************************************************
+
+
+!ELEMENT TYPE
+ET,1,SOLID186
+ET,2,SOLID5,3  
+
+!MATERIAL PROPERTIES
+!**********************************************************
+
+MPTEMP,1,0
+MPDATA,EX,1,,210E3
+MPDATA,PRXY,1,,0.33
+MPDATA,DENS,1,,7.85E-9
+
+!**********************************************************
+!MATERIAL2: PZT
+
+TB, ANEL, 2 , 1 , 0
+TBDATA, 1, 9.6903E+04 , 7.0017E+04 , 7.0017E+04
+TBDATA, 7, 1.2276E+05 , 7.6462E+04
+TBDATA, 12, 1.2276E+05
+TBDATA, 16, 2.2272E+04
+TBDATA, 19, 2.3148E+04
+TBDATA, 21, 2.2272E+04
+TB, PIEZ, 2 
+
+TBDATA, 1, 0.0138
+TBDATA, 4, -0.0071
+TBDATA, 7, -0.0071
+TBDATA, 11, 0.0119
+TBDATA, 18, 0.0119
+EMUNIT, EPZRO, 8.85E-12
+MP, PERX, 2 , 857
+MP, PERY, 2 , 929
+MP, PERZ, 2 , 929
+MP, DENS, 2 , 7.8E-09
+
+!Ring GEOMETRY
+!**********************************************************
+CSYS,1
+K,1,Raidus1,0,0
+K,2,Raidus1+Thickness,0,0
+
+K,3,Raidus2,0,Length
+K,4,Raidus2+Thickness,0,Length
+
+K,5,0,0,0
+K,6,0,0,Length
+
+LSTR,1,2
+LSTR,3,4
+LSTR,2,4
+LSTR,1,3
+AL,ALL
+VROTAT,1,,,,,,5,6,360,Nseg,
+
+!Patch Geometry
+!**********************************************************
+Allsel,all
+
+! Patch Number One
+!***********************
+
+*GET,KpMax,kp,0,NUM,MAX 
+
+K,KpMax+1,LengthPatch1(1),YCoor1,ZCoor1*Patch_width
+K,KpMax+2,LengthPatch1(1)+Patch_Thickness,YCoor1,ZCoor1*Patch_width
+
+K,KpMax+3,LengthPatch1(2),YCoor1,(ZCoor1+1)*Patch_width
+K,KpMax+4,LengthPatch1(2)+Patch_Thickness,YCoor1,(ZCoor1+1)*Patch_width
+
+LSTR,KpMax+1,KpMax+2
+LSTR,KpMax+3,KpMax+4
+LSTR,KpMax+2,KpMax+4
+LSTR,KpMax+1,KpMax+3
+
+allsel,all
+*GET,LMax,Line,0,NUM,MAX 
+Lsel,s,Line,,LMax-3,LMax
+AL,ALL
+
+! Patch Number two
+!***********************
+
+*GET,KpMax1,kp,0,NUM,MAX 
+
+K,KpMax1+1,LengthPatch2(1),YCoor2,ZCoor2*Patch_width
+K,KpMax1+2,LengthPatch2(1)+Patch_Thickness,YCoor2,ZCoor2*Patch_width
+
+K,KpMax1+3,LengthPatch2(2),YCoor2,(ZCoor2+1)*Patch_width
+K,KpMax1+4,LengthPatch2(2)+Patch_Thickness,YCoor2,(ZCoor2+1)*Patch_width
+
+LSTR,KpMax1+1,KpMax1+2
+LSTR,KpMax1+3,KpMax1+4
+LSTR,KpMax1+2,KpMax1+4
+LSTR,KpMax1+1,KpMax1+3
+
+allsel,all
+*GET,LMax,Line,0,NUM,MAX 
+Lsel,s,Line,,LMax-3,LMax
+AL,ALL
+
+! Patch Number three
+!***********************
+
+*GET,KpMax2,kp,0,NUM,MAX 
+
+K,KpMax2+1,LengthPatch3(1),YCoor3,ZCoor3*Patch_width
+K,KpMax2+2,LengthPatch3(1)+Patch_Thickness,YCoor3,ZCoor3*Patch_width
+
+K,KpMax2+3,LengthPatch3(2),YCoor3,(ZCoor3+1)*Patch_width
+K,KpMax2+4,LengthPatch3(2)+Patch_Thickness,YCoor3,(ZCoor3+1)*Patch_width
+
+LSTR,KpMax2+1,KpMax2+2
+LSTR,KpMax2+3,KpMax2+4
+LSTR,KpMax2+2,KpMax2+4
+LSTR,KpMax2+1,KpMax2+3
+
+allsel,all
+*GET,LMax,Line,0,NUM,MAX 
+Lsel,s,Line,,LMax-3,LMax
+AL,ALL
+
+! Patch Number four
+!***********************
+
+*GET,KpMax3,kp,0,NUM,MAX 
+
+K,KpMax3+1,LengthPatch4(1),YCoor4,ZCoor4*Patch_width
+K,KpMax3+2,LengthPatch4(1)+Patch_Thickness,YCoor4,ZCoor4*Patch_width
+
+K,KpMax3+3,LengthPatch4(2),YCoor4,(ZCoor4+1)*Patch_width
+K,KpMax3+4,LengthPatch4(2)+Patch_Thickness,YCoor4,(ZCoor4+1)*Patch_width
+
+LSTR,KpMax3+1,KpMax3+2
+LSTR,KpMax3+3,KpMax3+4
+LSTR,KpMax3+2,KpMax3+4
+LSTR,KpMax3+1,KpMax3+3
+
+allsel,all
+*GET,LMax,Line,0,NUM,MAX 
+Lsel,s,Line,,LMax-3,LMax
+AL,ALL
+
+! Patch Number two
+!***********************
+
+
+*GET,AMax,area,0,NUM,MAX 
+
+VROTAT,AMax,,,,,,5,6,360/Nseg,1,
+VROTAT,AMax-1,,,,,,5,6,360/Nseg,1,
+VROTAT,AMax-2,,,,,,5,6,360/Nseg,1,
+VROTAT,AMax-3,,,,,,5,6,360/Nseg,1,
+
+Vsel,all
+
+!**********************************************************
+*GET,VMax,Volum,0,NUM,MAX 
+Vsel,s,Volu,,VMax
+Vsel,a,Volu,,VMax-1
+Vsel,a,Volu,,VMax-2
+Vsel,a,Volu,,VMax-3
+CM,Piezovol,VOLU
+vsel,all
+
+!**********************************************************
+!*** Assign Material to piezo
+Vsel,S,VOLU,,Piezovol
+VATT,2,,2,,
+Vsel,all
+
+!**********************************************************
+!*** Assign Material to the Ring
+Vsel,U,VOLU,,Piezovol
+CM,Ringvol,VOLU
+VATT,1,,1,,
+vsel,all
+Aovlap,all
+
+*DO,i,1,hseg-1
+wpof,,,Patch_width
+VSBW,ALL
+*ENDDO
+WPAVE,0,0,0
+vsel,all
+!Aovlap,all
+vglue,all
+!**********************************************************
+!*** Meshing
+ALLSEL,ALL
+ESIZE,ELsize
+VSWEEP,ALL
+
+*DIM,Botom,ARRAY,4
+!Define Botom and Top electrodes of piez
+!----------------------
+Asel,s,Area,,96
+   Nsla,s,1
+*Get,Botom(1),node,0,num,min
+  Cp,1,volt,all
+  D,Botom(1),VOLT,0,0
+allsel
+
+Asel,s,Area,,101
+   Nsla,s,1
+*Get,Botom(2),node,0,num,min
+  Cp,2,volt,all
+  D,Botom(2),VOLT,0,0
+allsel
+
+Asel,s,Area,,106
+   Nsla,s,1
+*Get,Botom(3),node,0,num,min
+  Cp,3,volt,all
+  D,Botom(3),VOLT,0,0
+allsel
+
+Asel,s,Area,,111
+   Nsla,s,1
+*Get,Botom(4),node,0,num,min
+  Cp,4,volt,all
+  D,Botom(4),VOLT,0,0
+allsel
+
+
+
+
+
+
+Asel,s,Area,,98
+Asel,a,Area,,103
+Asel,a,Area,,108
+Asel,a,Area,,113
+   Nsla,s,1
+d,all,volt,0,0                  ! Ground bottom electrode,
+  nsel,all
+allsel
+
+!Asel,s,Area,,93
+!   Nsla,s,1
+!*Get,ANTOP,node,0,num,min
+!  Cp,2,volt,all
+!  D,ANTOP,VOLT,0,0
+!allsel
+
+
+!CSYS,0
+Nsel,s,loc,z,0,Patch_width-Patch_width/5                  ! Clamp left end 
+d,all,ux,0,,,,uy,uz		! Defines DOF constraints, clamp the end
+nsel,all
+allsel,all
+
+acel,0,-9.81,0
+finish
+
+*use,StateSpaceControl.mac

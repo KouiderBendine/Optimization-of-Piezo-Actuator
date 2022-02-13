@@ -1,0 +1,109 @@
+! Initialisation of the paramtres
+!----------------------------
+
+/SOLU  
+*Set,nmodes,6
+ANTYPE,MODAL                           ! Modal analysis 
+
+modopt,LANB,nmodes                     ! Block Lanczos solver 
+mxpand,nmodes,,,yes                    ! Calculate element results and                               
+SOLVE
+
+! Extract the Frequencices needed for the the state space equation
+!----------------------------
+
+*get,f1,mode,1,freq 
+*get,f2,mode,2,freq 
+*get,f3,mode,3,freq 
+*get,f4,mode,4,freq 
+*get,f5,mode,5,freq 
+*get,f6,mode,6,freq 
+
+!---------------------------------------------
+!------------------
+
+FINISH 
+SAVE
+/COM,    **** REVIEW THE RESULTS OF THE MODAL SOLUTION **** 
+
+
+/POST1 
+
+
+Nsel,all
+allsel,all
+nsel,all
+NSEL,S,LOC,Z,Hb
+*VGET,NDN, NODE,,NLIS
+*GET,NoNodes,node,0,count
+*GET,MINNode,NODE,0,NUM,MIN                ! Get The minimum node number
+*GET,MAXNode,NODE,0,NUM,MAX                ! Get The maximum node number
+
+*DIM,DISNode,ARRAY,MAXNode*3,nmodes
+*DIM,Disacc,ARRAY,nmodes
+
+*DIM,DISN,ARRAY,3,nmodes
+
+*DO,JM,1,nmodes,1
+
+SET,next 
+
+*set,IJJ1,0
+*set,Cout,1
+
+
+  *DO,IJ,1,NoNodes,1
+
+    
+
+    NodeNo=NDN(Cout)
+
+    *SET,IJJ1,IJJ1+1
+    *SET,IJJ2,IJJ1+1
+    *SET,IJJ3,IJJ2+1
+
+    *GET,DISNode(IJJ1,JM),NODE,NodeNo,UX               ! Displacement X direction
+    *GET,DISNode(IJJ2,JM),NODE,NodeNo,UY               ! Displacement Y direction
+    *GET,DISNode(IJJ3,JM),NODE,NodeNo,UZ               ! Displacement Z direction
+
+    
+
+    *SET,IJJ1,IJJ3
+    
+    
+
+    
+    Disacc(JM)= 1/8*(DISNode(IJJ1,JM)+ DISNode(IJJ2,JM)+ DISNode(IJJ3,JM))
+
+    
+
+    Cout=Cout+1  
+
+ *ENDDO  
+
+
+    
+*ENDDO
+    
+    
+
+
+
+
+!-------------------------------------
+!----
+*CFOPEN,State_Space_Force,csv
+
+
+
+
+*VWRITE, Disacc(1), Disacc(2), Disacc(3), Disacc(4), Disacc(5), Disacc(6)
+%0.0f,%0.0f,%0.0f,%0.0f,%0.0f,%0.0f
+
+
+
+*CFCLOSE
+
+
+  
+
