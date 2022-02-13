@@ -1,0 +1,123 @@
+! Initialisation of the paramtres
+!----------------------------
+
+*Set,Piezo_Number,4
+*Set,nmodes,6
+*SET,DIS   ! Displacement Vector
+*SET,QS    ! Electric charge Vector
+*SET,KPhi  ! Piezoelectric coupling vector
+*SET,KPhi_U
+*DIM,DIS,ARRAY,3*36,nmodes,Piezo_Number
+*DIM,QS,ARRAY,nmodes,Piezo_Number
+*DIM,KPhi,ARRAY,3*36,nmodes,Piezo_Number
+*DIM,KPhi_U,ARRAY,nmodes,Piezo_Number
+*DIM,K_U_Phi,ARRAY,nmodes,Piezo_Number
+*SET,SNN,0
+
+/SOLU  
+ANTYPE,MODAL                           ! Modal analysis 
+
+modopt,LANB,nmodes                     ! Block Lanczos solver 
+mxpand,nmodes,,,yes                    ! Calculate element results and                               
+SOLVE
+! Extract the Frequencices needed for the the state space equation
+!----------------------------
+
+*get,f1,mode,1,freq 
+*get,f2,mode,2,freq 
+*get,f3,mode,3,freq 
+*get,f4,mode,4,freq 
+*get,f5,mode,5,freq 
+*get,f6,mode,6,freq 
+
+FINISH 
+SAVE
+/COM,    **** REVIEW THE RESULTS OF THE MODAL SOLUTION **** 
+
+
+/POST1 
+
+*DO,N_Patch,1,Piezo_Number
+
+  asel,s,loc,z,Hb+H
+  asel,r,loc,x,Xcoord(N_Patch),Xcoord(N_Patch)+L
+  asel,r,loc,y,Ycoord(N_Patch),Ycoord(N_Patch)+W
+  nsla,s,1
+   
+   *SET,SNN,SNN+1
+
+   *GET,MINUMN,NODE,0,NUM,MIN                ! Get The minimum node number
+   *GET,MAXUMN,NODE,0,NUM,MAX                ! Get The maximum node number
+
+*DO,JM,1,nmodes,1
+
+ SET,next 
+
+  *set,IJJ1,0
+  !*set,IJJ2,0
+  !*set,IJJ3,0
+Count=0
+  *DO,IJ,MINUMN,MAXUMN,1
+    Count=Count+1  
+    *SET,IJJ1,IJJ1+1
+    *SET,IJJ2,IJJ1+1
+    *SET,IJJ3,IJJ2+1
+    *GET,DIS(IJJ1,JM,N_Patch),NODE,IJ,UX               ! Displacement X direction
+    *GET,DIS(IJJ2,JM,N_Patch),NODE,IJ,UY               ! Displacement Y direction
+    !*GET,DIS(IJJ3,JM,N_Patch),NODE,IJ,UZ               ! Displacement Z direction
+ *SET,IJJ1,IJJ3
+   
+ *ENDDO
+
+    *GET,QS(JM,SNN),NODE,ANTOP(SNN),RF,AMPS/Count     ! Get the electric charge
+
+    
+    
+*ENDDO
+    
+    
+
+*ENDDO
+
+! The computation of the Piezoelectric coupling vector
+!----------------------------
+
+*DO,N_Patch,1,Piezo_Number
+  *DO,JM,1,nmodes,1
+     *set,IJJ1,0
+     *set,IJJ,0
+      *DO,IJ,MINUMN,MAXUMN,1
+         *SET,IJJ1,IJJ1+1
+         *SET,IJJ2,IJJ1+1
+         *SET,IJJ3,IJJ2+1
+          KPhi(IJJ1,JM,N_Patch)= QS(JM,N_Patch)/(Count*Dis(IJJ1,JM,N_Patch))
+          KPhi(IJJ2,JM,N_Patch)= QS(JM,N_Patch)/(Count*Dis(IJJ2,JM,N_Patch))
+          !KPhi(IJJ3,JM,N_Patch)= QS(JM,N_Patch)/(Count*Dis(IJJ2,JM,N_Patch))
+         *SET,IJJ1,IJJ3
+      *ENDDO
+  *ENDDO
+*ENDDO
+
+! Export the Piezoelectric coupling vector and the frequencies to an Excel file
+!----------------------------
+
+*CFOPEN,State_Space,csv
+
+*DO,N_Patch,1,Piezo_Number
+*DO,JM,1,nmodes,1
+     *set,IJJ1,0
+      *DO,IJ,MINUMN,MAXUMN-1,1
+         *SET,IJJ1,IJJ1+1
+    
+          KPhi_U(JM,N_Patch)= -Dis(IJJ1,JM,N_Patch)*KPhi(IJJ1,JM,N_Patch)-Dis(IJJ1+1,JM,N_Patch)*KPhi(IJJ1+1,JM,N_Patch)!-Dis(IJJ1+2,JM,N_Patch)*KPhi(IJJ1+2,JM,N_Patch)
+          
+      *ENDDO
+  *ENDDO
+
+
+*VWRITE,KPhi_U(1,N_Patch),KPhi_U(2,N_Patch),KPhi_U(3,N_Patch),KPhi_U(4,N_Patch),KPhi_U(5,N_Patch),KPhi_U(6,N_Patch),f1,f2,f3,f4,f5,f6
+%0.0f,%0.0f,%0.0f,%0.0f,%0.0f,%0.0f,%0.0f,%0.0f,%0.0f,%0.0f,%0.0f,%0.0f
+
+*ENDDO
+
+*CFCLOSE
